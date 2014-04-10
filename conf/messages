@@ -1,0 +1,5 @@
+# Messages
+
+locations.list.title={0,choice,0#No locations|1#One location|1<{0,number,integer} locations} found
+
+

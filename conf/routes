@@ -1,0 +1,13 @@
+# Routes
+# This file defines all application routes (Higher priority routes first)
+# ~~~~
+
+# Default path will just redirect to the location list
+GET     /                           controllers.Application.index()
+
+# Locations list (look at the default values for pagination parameters)
+GET     /locations                  controllers.Application.list(p:Int ?= 0, s ?= "name", o ?= "asc", f ?= "")
+
+
+# Map static resources from the /public folder to the /assets URL path
+GET     /assets/*file               controllers.Assets.at(path="/public", file)

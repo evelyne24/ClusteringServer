@@ -1,0 +1,118 @@
+@(currentPage: com.avaje.ebean.Page[Location], currentSortBy: String, currentOrder: String, currentFilter: String)
+
+@****************************************
+* Helper generating navigation links    *
+****************************************@
+@link(newPage:Int, newSortBy:String) = @{
+    
+    var sortBy = currentSortBy
+    var order = currentOrder
+    
+    if(newSortBy != null) {
+        sortBy = newSortBy
+        if(currentSortBy == newSortBy) {
+            if(currentOrder == "asc") {
+                order = "desc"
+            } else {
+                order = "asc"
+            }
+        } else {
+            order = "asc"
+        }
+    }
+    
+    // Generate the link
+    routes.Application.list(newPage, sortBy, order, currentFilter)
+    
+}
+
+@**********************************
+* Helper generating table headers *
+***********************************@
+@header(key:String, title:String) = {
+    <th class='@key.replaceAll(".","_") header @if(currentSortBy == key) @{if(currentOrder == "asc"){ "headerSortDown" }else{ "headerSortUp" } }'>
+        <a href="@link(0, key)">@title</a>
+    </th>
+}
+
+@main("Clustering Server"){
+    
+    <h1 id="homeTitle">@Messages("locations.list.title", currentPage.getTotalRowCount)</h1>
+
+    <div id="actions">
+        
+        <form action="@link(0, "name")" method="GET">
+            <input type="search" id="searchbox" name="f" value="@currentFilter" placeholder="Filter by location name...">
+            <input type="submit" id="searchsubmit" value="Filter by name" class="btn primary">
+        </form>
+
+    </div>
+    
+    @if(currentPage.getTotalRowCount == 0) {
+
+        <div class="well">
+            <em>Nothing to display</em>
+        </div>
+
+    } else {
+
+        <table class="locations zebra-striped">
+            <thead>
+                <tr>
+                    @header("name", "location name")
+                    @header("latitude", "Latitude")
+                    @header("longitude", "Longitude")
+                    @header("quadKey", "QuadKey")
+                </tr>
+            </thead>
+            <tbody>
+
+                @for(location <- currentPage.getList) {
+                    <tr>
+                        <td>@location.name</td>
+                        <td>@location.latitude</td>
+                        <td>@location.longitude</td>
+                        <td>
+                            @if(location.quadKey == null) {
+                                <em>-</em>
+                            } else {
+                                @location.quadKey
+                            }
+                        </td>
+                    </tr>
+                }
+
+            </tbody>
+        </table>
+
+        <div id="pagination" class="pagination">
+            <ul>
+                @if(currentPage.hasPrev) {
+                    <li class="prev">
+                        <a href="@link(currentPage.getPageIndex - 1, null)">&larr; Previous</a>
+                    </li>
+                } else {
+                    <li class="prev disabled">
+                        <a>&larr; Previous</a>
+                    </li>
+                }
+                <li class="current">
+                    <a>Displaying @currentPage.getDisplayXtoYofZ(" to "," of ")</a>
+                </li>
+                @if(currentPage.hasNext) {
+                    <li class="next">
+                        <a href="@link(currentPage.getPageIndex + 1, null)">Next &rarr;</a>
+                    </li>
+                } else {
+                    <li class="next disabled">
+                        <a>Next &rarr;</a>
+                    </li>
+                }
+            </ul>
+        </div>
+
+    }
+        
+}
+
+            
