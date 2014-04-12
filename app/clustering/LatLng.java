@@ -45,4 +45,12 @@ public class LatLng implements QueryStringBindable<LatLng> {
                 "    return encodeURIComponent(k) + '=' + v.lat + ',' + v.lng; \n" +
                 "}";
     }
+
+    @Override
+    public String toString() {
+        return "LatLng{" +
+                "latitude=" + latitude +
+                ", longitude=" + longitude +
+                '}';
+    }
 }

@@ -3,6 +3,7 @@ package controllers;
 import clustering.Cluster;
 import clustering.LatLng;
 import clustering.LocationUtils;
+import clustering.RandomLocationsGenerator;
 import com.avaje.ebean.Ebean;
 import com.avaje.ebean.Page;
 import models.Location;
@@ -60,16 +61,19 @@ public class Application extends Controller {
     }
 
     /**
-     * Computes the quad keys for all locations in the database for the biggest zoom level possible.
+     * Update db locations with random coordinates and computed quad key at the max zoom level.
      */
-    public static Result computeQuadKeys() {
+    public static Result update(LatLng sw, LatLng ne) {
         int page = 0;
         int totalSize = 0;
         Page<Location> result;
         do {
             result = Location.list(page, 1000);
             for (Location location : result.getList()) {
-                location.quadKey = LocationUtils.getQuadKey(location.latLng(), Z19);
+                LatLng latLng = RandomLocationsGenerator.generate(sw, ne);
+                location.latitude = latLng.latitude;
+                location.longitude = latLng.longitude;
+                location.quadKey = LocationUtils.getQuadKey(latLng, Z19);
             }
             Ebean.save(result.getList());
             page++;
@@ -80,13 +84,22 @@ public class Application extends Controller {
     }
 
     /**
-     * Show Google Maps centered on a default location in the UK.
+     * Show Google Maps centered on a default location.
      */
     public static Result map() {
         return ok(views.html.map.render());
     }
 
 
+    /**
+     * Return the JSON representation for all clusters found within the given bounds
+     * at the specified zoom level.
+     *
+     * @param sw   south west bound {@link LatLng}
+     * @param ne   north east bound {@link LatLng}
+     * @param zoom the zoom level of the map.
+     * @return
+     */
     public static Result jsonList(LatLng sw, LatLng ne, int zoom) {
         try {
             log.info("Getting clusters in bounds {} - {} at zoom {}", sw, ne, zoom);
@@ -95,9 +108,11 @@ public class Application extends Controller {
 
             log.debug("Got back clusters map {}", clusterCount.toString());
 
-            Map<String, Cluster> clusters = new HashMap<String, Cluster>(clusterCount.size());
+            Map<String, Cluster> clusters = new HashMap<String, Cluster>();
             for (Map.Entry<String, Integer> entry : clusterCount.entrySet()) {
-                clusters.put(entry.getKey(), new Cluster(getTileFromQuadKey(entry.getKey()).center, entry.getValue()));
+                if(entry.getValue() > 0) {
+                    clusters.put(entry.getKey(), new Cluster(getTileFromQuadKey(entry.getKey()).center, entry.getValue()));
+                }
             }
 
             return ok(Json.toJson(clusters));
@@ -108,10 +123,11 @@ public class Application extends Controller {
     }
 
     private static Map<String, Integer> getClustersCount(LatLng sw, LatLng ne, int zoom) throws SQLException {
+        // cqk = cluster quad key, cnt = how many locations in the cluster
         String sql = "SELECT SUBSTRING(quad_key, 1, ?) AS cqk, COUNT(*) AS cnt " +
                 "FROM location " +
-//                "WHERE latitude > ? AND latitude < ?" + //FIXME generate better latitudes
-                "WHERE longitude > ? AND longitude < ? " +
+                "WHERE latitude > ? AND latitude < ? " +
+                "AND longitude > ? AND longitude < ? " +
                 "GROUP BY cqk";
 
         Connection conn = play.db.DB.getConnection();
@@ -119,12 +135,12 @@ public class Application extends Controller {
         try {
             stmt = conn.prepareStatement(sql);
             stmt.setInt(1, zoom);
-            //stmt.setDouble(2, sw.latitude);
-            //stmt.setDouble(3, ne.latitude);
-            stmt.setDouble(2, sw.longitude);
-            stmt.setDouble(3, ne.longitude);
+            stmt.setDouble(2, sw.latitude);
+            stmt.setDouble(3, ne.latitude);
+            stmt.setDouble(4, sw.longitude);
+            stmt.setDouble(5, ne.longitude);
 
-            log.debug("Executing statement {}", stmt.toString());
+            log.debug("Executing SQL {}", stmt.toString());
 
             ResultSet result = stmt.executeQuery();
 

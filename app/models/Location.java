@@ -1,11 +1,8 @@
 package models;
 
-import clustering.LatLng;
-import clustering.ZoomLevel;
 import com.avaje.ebean.Page;
 import play.data.validation.Constraints;
 import play.db.ebean.Model;
-import play.db.ebean.Model.Finder;
 
 import javax.persistence.Entity;
 import javax.persistence.Id;
@@ -29,10 +26,6 @@ public class Location extends Model {
 
     public String name;
 
-    public LatLng latLng() {
-       return new LatLng(latitude, longitude);
-    }
-
     /**
      * Generic query helper for entity Location with id Long
      */
@@ -49,24 +42,25 @@ public class Location extends Model {
      */
     public static Page<Location> listByName(int page, int pageSize, String sortBy, String order, String filter) {
         return
-            find.where()
-                .ilike("name", "%" + filter + "%")
-                .orderBy(sortBy + " " + order)
-                .findPagingList(pageSize)
-                .setFetchAhead(false)
-                .getPage(page);
+                find.where()
+                        .ilike("name", "%" + filter + "%")
+                        .orderBy(sortBy + " " + order)
+                        .findPagingList(pageSize)
+                        .setFetchAhead(false)
+                        .getPage(page);
     }
 
     /**
      * Return a list of Locations.
+     *
      * @param page
      * @param pageSize
      * @return
      */
     public static Page<Location> list(int page, int pageSize) {
         return find.where()
-                   .findPagingList(pageSize)
-                   .setFetchAhead(false)
-                   .getPage(page);
+                .findPagingList(pageSize)
+                .setFetchAhead(false)
+                .getPage(page);
     }
 }

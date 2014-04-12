@@ -6,8 +6,8 @@ import static clustering.LocationUtils.*;
 
 
 /**
- * A QuadTile is a portion of the world map viewed as a Mercador
- * projection. It can be imagined as a square tile of certain dimensions, for example 256 x 256 pixels.
+ * A QuadTile is a portion of the world map viewed as a Mercador projection.
+ * It can be imagined as a square tile of certain dimensions, for example 256 x 256 pixels.
  * <p>
  * <br/><br/>
  * The world map has different dimensions based on the zoom level:
@@ -44,9 +44,6 @@ import static clustering.LocationUtils.*;
  * @see <a href="http://msdn.microsoft.com/en-us/library/bb259689.aspx>Bings Maps Tile System</a>
  */
 public class QuadTile {
-
-    public static QuadTile[] EMPTY_ARRAY = new QuadTile[]{};
-
 
     /**
      * The x coordinate of the top left corner of the tile.
