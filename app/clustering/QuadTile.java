@@ -144,11 +144,48 @@ public class QuadTile {
      * @param zoom
      * @return
      */
-    public static QuadTile getTile(LatLng latLng, ZoomLevel zoom) {
+    public static QuadTile getTileFromLatLng(LatLng latLng, ZoomLevel zoom) {
         final Point center = latLngToWorldPoint(latLng, zoom);
         final Point tile = worldPointToTileXY(center);
         return new QuadTile(tile.x, tile.y, zoom);
     }
+
+    /**
+     * Computes the {@link QuadTile} for a given quad key.
+     *
+     * @param quadKey
+     * @return
+     */
+    public static QuadTile getTileFromQuadKey(final String quadKey) {
+        int tileX = 0, tileY = 0;
+        int zoom = quadKey.length();
+
+        for (int i = zoom; i > 0; i--) {
+            int mask = 1 << (i - 1);
+            switch (quadKey.charAt(zoom - i)) {
+                case '0':
+                    break;
+
+                case '1':
+                    tileX |= mask;
+                    break;
+
+                case '2':
+                    tileY |= mask;
+                    break;
+
+                case '3':
+                    tileX |= mask;
+                    tileY |= mask;
+                    break;
+
+                default:
+                    throw new IllegalArgumentException("Invalid QuadKey digit sequence.");
+            }
+        }
+        return new QuadTile(tileX, tileY, ZoomLevel.get(zoom));
+    }
+
 
     public QuadTile(final int x, final int y, final ZoomLevel zoom) {
         this.x = x;

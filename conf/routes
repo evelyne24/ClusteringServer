@@ -8,6 +8,14 @@ GET     /                           controllers.Application.index()
 # Locations list (look at the default values for pagination parameters)
 GET     /locations                  controllers.Application.list(p:Int ?= 0, s ?= "name", o ?= "asc", f ?= "")
 
+# Fetches all locations around the provided lat lng and zoom level
+GET     /json/locations             controllers.Application.jsonList(sw:clustering.LatLng, ne:clustering.LatLng, zoom:Int)
+
+# Compute all the quad keys for the locations in the database
+GET     /locations/quadKeys         controllers.Application.computeQuadKeys()
+
+# Show Google Maps
+GET     /map                        controllers.Application.map()
 
 # Map static resources from the /public folder to the /assets URL path
 GET     /assets/*file               controllers.Assets.at(path="/public", file)
