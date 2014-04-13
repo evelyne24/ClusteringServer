@@ -1,33 +1,39 @@
-var defNE = {lat:52.513422,lng:-0.200195};
-var defSW = {lat:51.039235,lng:-2.164307};
+
+var minZoom = 3;
+var maxZoom = 19;
+var defZoom = 12;
+var defCenter = new google.maps.LatLng(51.504789,  -0.156555);
+
 var map = null;
+var markers = [];
+var clusters = [];
+var maxCluster;
 
 function initialize() {
     var mapOptions = {
-      center: new google.maps.LatLng(51.504789,-0.156555),
-      zoom: 8
+      center: defCenter,
+      zoom: defZoom,
+      minZoom: minZoom,
+      maxZoom: maxZoom
     };
     map = new google.maps.Map(document.getElementById("map-canvas"), mapOptions);
-    fitMapBounds(defSW, defNE);
+
+    google.maps.event.addListener(map, 'idle', function() {
+        getClusters(map.getBounds(), map.getZoom() + 1);
+    });
 }
 
 function parseCluster(key, value) {
-    // Create a LatLng point
     var latLng = new google.maps.LatLng(
       value.center.latitude,
       value.center.longitude
     );
-
     return {center: latLng, count: value.count, quadKey: key}
 }
 
 function addMarker(cluster) {
-    // Create a Marker
-    var marker = new google.maps.Marker({
-      position: cluster.center,
-      map: map,
-      animation: google.maps.Animation.DROP
-    });
+    var marker = createMarker(cluster);
+    markers.push(marker);
 
     // Create the tooltip and its text
     var infoWindow = new google.maps.InfoWindow();
@@ -43,27 +49,74 @@ function addMarker(cluster) {
     marker.setMap(map);
 }
 
-function getClusters(sw, ne, zoom) {
+ // Create a cluster or a single Marker
+function createMarker(cluster) {
+    return cluster.count > 1 ?
+           getClusterMarker(cluster) :
+           getSingleMarker(cluster);
+}
+
+function getSingleMarker(cluster) {
+    return new google.maps.Marker({
+        position: cluster.center,
+        map: map,
+        animation: google.maps.Animation.DROP
+    });
+}
+
+function getClusterMarker(cluster) {
+    return new MarkerWithLabel({
+      position: cluster.center,
+      map: map,
+      icon: { path: google.maps.SymbolPath.CIRCLE,
+        fillOpacity: 0.5,
+        fillColor: 'ff0000',
+        strokeOpacity: 0,
+        scale: 5 + 30 * (cluster.count / maxCluster)
+      },
+      labelContent: cluster.count,
+      labelAnchor: new google.maps.Point(50, 10),
+      labelClass: "cluster"
+    });
+}
+
+// Deletes all markers on the map
+function clearMap() {
+  for(i in markers) {
+    markers[i].setMap(null);
+  }
+  markers = [];
+  clusters = [];
+}
+
+function getClusters(bounds, zoom) {
+    //console.log("Get clusters for bounds: " + bounds + ", zoom: " + zoom);
+
+    var sw = {lat: bounds.getSouthWest().lat(), lng: bounds.getSouthWest().lng()};
+    var ne = {lat: bounds.getNorthEast().lat(), lng: bounds.getNorthEast().lng()};
+
+    clearMap();
+
     jsRoutes.controllers.Application.jsonList(sw, ne, zoom).ajax({
         success: function(data) {
+
+            maxCluster = 0;
+
             $.each(data, function (key, value) {
-                addMarker(parseCluster(key, value));
+                var cluster = parseCluster(key, value);;
+                if(cluster.count > maxCluster) {
+                    maxCluster = cluster.count;
+                }
+                clusters.push(cluster);
             });
+
+            for(i in clusters) {
+                addMarker(clusters[i]);
+            }
         },
 
         error: function(error) {
            console.log("Error: " + error);
         }
     });
-}
-
-function fitMapBounds(sw, ne) {
-    google.maps.event.addListener(map, 'zoom_changed', function() {
-      getClusters(sw, ne, map.getZoom() + 2); // get the clusters for a bigger zoom level
-    });
-
-    map.fitBounds(new google.maps.LatLngBounds(
-      new google.maps.LatLng(sw.lat, sw.lng),
-      new google.maps.LatLng(ne.lat, ne.lng)
-    ));
 }
