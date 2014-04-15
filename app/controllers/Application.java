@@ -1,9 +1,6 @@
 package controllers;
 
-import clustering.Cluster;
-import clustering.LatLng;
-import clustering.LocationUtils;
-import clustering.RandomLocationsGenerator;
+import clustering.*;
 import com.avaje.ebean.Ebean;
 import com.avaje.ebean.Page;
 import models.Location;
@@ -102,19 +99,9 @@ public class Application extends Controller {
      */
     public static Result jsonList(LatLng sw, LatLng ne, int zoom) {
         try {
-            log.info("Getting clusters in bounds {} - {} at zoom {}", sw, ne, zoom);
-
-            Map<String, Integer> clusterCount = getClustersCount(sw, ne, zoom);
-
-            log.debug("Got back clusters map {}", clusterCount.toString());
-
-            Map<String, Cluster> clusters = new HashMap<String, Cluster>();
-            for (Map.Entry<String, Integer> entry : clusterCount.entrySet()) {
-                if(entry.getValue() > 0) {
-                    clusters.put(entry.getKey(), new Cluster(getTileFromQuadKey(entry.getKey()).center, entry.getValue()));
-                }
-            }
-
+            //log.info("Getting clusters in bounds {} - {} at zoom {}", sw, ne, zoom);
+            Map<String, Cluster> clusters = getClustersCount(sw, ne, zoom);
+            //log.debug("Got back clusters map {}", clusters.toString());
             return ok(Json.toJson(clusters));
 
         } catch (SQLException e) {
@@ -122,9 +109,9 @@ public class Application extends Controller {
         }
     }
 
-    private static Map<String, Integer> getClustersCount(LatLng sw, LatLng ne, int zoom) throws SQLException {
+    private static Map<String, Cluster> getClustersCount(LatLng sw, LatLng ne, int zoom) throws SQLException {
         // cqk = cluster quad key, cnt = how many locations in the cluster
-        String sql = "SELECT SUBSTRING(quad_key, 1, ?) AS cqk, COUNT(*) AS cnt " +
+        String sql = "SELECT SUBSTRING(quad_key, 1, ?) AS cqk, COUNT(*) AS cnt, name, latitude, longitude " +
                 "FROM location " +
                 "WHERE latitude > ? AND latitude < ? " +
                 "AND longitude > ? AND longitude < ? " +
@@ -144,11 +131,29 @@ public class Application extends Controller {
 
             ResultSet result = stmt.executeQuery();
 
-            Map<String, Integer> clusters = new HashMap<String, Integer>();
+            Map<String, Cluster> results = new HashMap<String, Cluster>();
             while (result.next()) {
-                clusters.put(result.getString("cqk"), result.getInt("cnt"));
+                int count = result.getInt("cnt");
+                String quadKey = result.getString("cqk");
+                QuadTile tile = getTileFromQuadKey(quadKey);
+                Cluster.Builder cluster = new Cluster.Builder()
+                        .center(tile.center)
+                        .topLeft(tile.topLeft)
+                        .topRight(tile.topRight)
+                        .bottomLeft(tile.bottomLeft)
+                        .bottomRight(tile.bottomRight)
+                        .count(count);
+
+                if (count == 1) {
+                    Location location = new Location();
+                    location.name = result.getString("name");
+                    location.latitude = result.getDouble("latitude");
+                    location.longitude = result.getDouble("longitude");
+                    cluster.location(location);
+                }
+                results.put(quadKey, cluster.build());
             }
-            return clusters;
+            return results;
         } finally {
             try {
                 if (stmt != null) {
