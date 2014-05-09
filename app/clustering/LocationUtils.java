@@ -102,7 +102,7 @@ public class LocationUtils {
      */
     public static Point worldPointToTileXY(Point point) {
         final int tileX = (int) Math.floor((double) point.x / TILE_SIZE);
-        final int tileY = (int) Math.ceil((double) point.y / TILE_SIZE);
+        final int tileY = (int) Math.floor((double) point.y / TILE_SIZE);
         return new Point(tileX, tileY);
     }
 

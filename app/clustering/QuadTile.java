@@ -190,7 +190,7 @@ public class QuadTile {
         this.zoom = zoom;
 
         worldLeftTop = new Point(x * TILE_SIZE, y * TILE_SIZE);
-        worldRightBottom = new Point((x + 1) * TILE_SIZE, (y - 1) * TILE_SIZE);
+        worldRightBottom = new Point((x + 1) * TILE_SIZE, (y + 1) * TILE_SIZE);
 
         topLeft = worldPointToLatLng(worldLeftTop, zoom);
         bottomRight = worldPointToLatLng(worldRightBottom, zoom);
