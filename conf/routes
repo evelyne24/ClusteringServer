@@ -9,7 +9,7 @@ GET     /                           controllers.Application.index()
 GET     /locations                  controllers.Application.list(p:Int ?= 0, s ?= "name", o ?= "asc", f ?= "")
 
 # Update the locations in the database with random latitude, longitude within bounds and the computed quad key
-# http://localhost:9000/locations/update?sw=49.951220,-5.767822&ne=58.608334,-0.186768
+# http://localhost:9000/locations/update?sw=51.49217889772613,-0.3860662609863539&ne=51.58144308238268,0.07295626098630237
 
 GET     /locations/update          controllers.Application.update(sw:clustering.LatLng, ne:clustering.LatLng)
 
