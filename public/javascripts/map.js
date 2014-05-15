@@ -23,27 +23,25 @@ function initialize() {
     });
 }
 
-function parseCluster(key, value) {
+function parseCluster(cluster) {
     var center = new google.maps.LatLng(
-        value.center.latitude,
-        value.center.longitude
+        cluster.center.latitude,
+        cluster.center.longitude
     );
     var topRight = new google.maps.LatLng(
-        value.topRight.latitude,
-        value.topRight.longitude
+        cluster.topRight.latitude,
+        cluster.topRight.longitude
     );
     var bottomLeft = new google.maps.LatLng(
-        value.bottomLeft.latitude,
-        value.bottomLeft.longitude
+        cluster.bottomLeft.latitude,
+        cluster.bottomLeft.longitude
     );
-    var name = (value.count > 1) ? key : value.location.name;
-
     return {
         topRight: topRight,
         bottomLeft: bottomLeft,
         center: center,
-        name: name,
-        count: value.count
+        name: cluster.quadKey + " (" + cluster.count + ")",
+        count: cluster.count
     }
 }
 
@@ -76,8 +74,7 @@ function createMarker(cluster) {
 function getSingleMarker(cluster) {
     return new google.maps.Marker({
         position: cluster.center,
-        map: map,
-        animation: google.maps.Animation.DROP
+        map: map
     });
 }
 
@@ -120,7 +117,7 @@ function clearTiles() {
 }
 
 function getClusters(bounds, zoom) {
-    //console.log("Get clusters for bounds: " + bounds + ", zoom: " + zoom);
+    console.log("Get clusters for bounds: " + bounds + ", zoom: " + zoom);
 
     var sw = {
         lat: bounds.getSouthWest().lat(),
@@ -133,18 +130,19 @@ function getClusters(bounds, zoom) {
 
     clearMap();
 
-    jsRoutes.controllers.Application.jsonList(sw, ne, zoom).ajax({
+    jsRoutes.controllers.Application.getClusters(sw, ne, zoom).ajax({
         success: function (data) {
-
             maxCluster = 0;
 
-            $.each(data, function (key, value) {
-                var cluster = parseCluster(key, value);;
+            $.each(data, function (index, value) {
+                var cluster = parseCluster(value);
                 if (cluster.count > maxCluster) {
                     maxCluster = cluster.count;
                 }
                 clusters.push(cluster);
             });
+
+            console.log("Got " + clusters.count + " clusters.");
 
             for (i in clusters) {
                 addMarker(clusters[i]);

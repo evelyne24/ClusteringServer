@@ -22,7 +22,7 @@
     }
     
     // Generate the link
-    routes.Application.list(newPage, sortBy, order, currentFilter)
+    routes.Application.getLocations(newPage, sortBy, order, currentFilter)
     
 }
 
@@ -70,8 +70,8 @@
                 @for(location <- currentPage.getList) {
                     <tr>
                         <td>@location.name</td>
-                        <td>@location.latitude</td>
-                        <td>@location.longitude</td>
+                        <td>@location.latLng.latitude</td>
+                        <td>@location.latLng.longitude</td>
                         <td>
                             @if(location.quadKey == null) {
                                 <em>-</em>

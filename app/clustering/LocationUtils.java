@@ -1,5 +1,8 @@
 package clustering;
 
+import models.Cluster;
+import models.LatLng;
+
 import static java.lang.Math.*;
 
 /**
@@ -7,12 +10,17 @@ import static java.lang.Math.*;
  */
 public class LocationUtils {
 
+    // LATITUDE GROWS FROM BOTTOM TO UP (Y-axis)
+    // LONGITUDE GROWS FROM LEFT TO RIGHT (X-axis)
+
     public static final int TILE_SIZE = 256;
 
     public static final double MIN_LATITUDE = -85.05112877;
     public static final double MAX_LATITUDE = 85.05112877;
     public static final double MIN_LONGITUDE = -179.999;
     public static final double MAX_LONGITUDE = 179.999;
+
+    public static final double EARTH_RADIUS = 6371; // km
 
     /**
      * Make sure a value stays within a minimum and maximum values.
@@ -101,8 +109,8 @@ public class LocationUtils {
      * @return
      */
     public static Point worldPointToTileXY(Point point) {
-        final int tileX = (int) Math.floor((double) point.x / TILE_SIZE);
-        final int tileY = (int) Math.floor((double) point.y / TILE_SIZE);
+        final int tileX = (int) floor((double) point.x / TILE_SIZE);
+        final int tileY = (int) floor((double) point.y / TILE_SIZE);
         return new Point(tileX, tileY);
     }
 
@@ -111,6 +119,12 @@ public class LocationUtils {
         float[] results = new float[1];
         distanceBetween(startLatitude, startLongitude, endLatitude, endLongitude, results);
         return results[0];
+    }
+
+    public static float[] distanceAndBearingBetween(LatLng startLatLng, LatLng stopLatLng) {
+        float[] results = new float[2];
+        distanceBetween(startLatLng.latitude, startLatLng.longitude, stopLatLng.latitude, stopLatLng.longitude, results);
+        return results;
     }
 
     /**
@@ -156,10 +170,10 @@ public class LocationUtils {
 
         int MAXITERS = 20;
         // Convert lat/long to radians
-        lat1 *= Math.PI / 180.0;
-        lat2 *= Math.PI / 180.0;
-        lon1 *= Math.PI / 180.0;
-        lon2 *= Math.PI / 180.0;
+        lat1 *= PI / 180.0;
+        lat2 *= PI / 180.0;
+        lon1 *= PI / 180.0;
+        lon2 *= PI / 180.0;
 
         double a = 6378137.0; // WGS84 major axis
         double b = 6356752.3142; // WGS84 semi-major axis
@@ -168,13 +182,13 @@ public class LocationUtils {
 
         double L = lon2 - lon1;
         double A = 0.0;
-        double U1 = Math.atan((1.0 - f) * Math.tan(lat1));
-        double U2 = Math.atan((1.0 - f) * Math.tan(lat2));
+        double U1 = atan((1.0 - f) * tan(lat1));
+        double U2 = atan((1.0 - f) * tan(lat2));
 
-        double cosU1 = Math.cos(U1);
-        double cosU2 = Math.cos(U2);
-        double sinU1 = Math.sin(U1);
-        double sinU2 = Math.sin(U2);
+        double cosU1 = cos(U1);
+        double cosU2 = cos(U2);
+        double sinU1 = sin(U1);
+        double sinU2 = sin(U2);
         double cosU1cosU2 = cosU1 * cosU2;
         double sinU1sinU2 = sinU1 * sinU2;
 
@@ -190,14 +204,14 @@ public class LocationUtils {
         double lambda = L; // initial guess
         for (int iter = 0; iter < MAXITERS; iter++) {
             double lambdaOrig = lambda;
-            cosLambda = Math.cos(lambda);
-            sinLambda = Math.sin(lambda);
+            cosLambda = cos(lambda);
+            sinLambda = sin(lambda);
             double t1 = cosU2 * sinLambda;
             double t2 = cosU1 * sinU2 - sinU1 * cosU2 * cosLambda;
             double sinSqSigma = t1 * t1 + t2 * t2; // (14)
-            sinSigma = Math.sqrt(sinSqSigma);
+            sinSigma = sqrt(sinSqSigma);
             cosSigma = sinU1sinU2 + cosU1cosU2 * cosLambda; // (15)
-            sigma = Math.atan2(sinSigma, cosSigma); // (16)
+            sigma = atan2(sinSigma, cosSigma); // (16)
             double sinAlpha = (sinSigma == 0) ? 0.0 :
                     cosU1cosU2 * sinLambda / sinSigma; // (17)
             cosSqAlpha = 1.0 - sinAlpha * sinAlpha;
@@ -229,7 +243,7 @@ public class LocationUtils {
                                             (-1.0 + 2.0 * cos2SM * cos2SM))); // (11)
 
             double delta = (lambda - lambdaOrig) / lambda;
-            if (Math.abs(delta) < 1.0e-12) {
+            if (abs(delta) < 1.0e-12) {
                 break;
             }
         }
@@ -237,16 +251,61 @@ public class LocationUtils {
         float distance = (float) (b * A * (sigma - deltaSigma));
         results[0] = distance;
         if (results.length > 1) {
-            float initialBearing = (float) Math.atan2(cosU2 * sinLambda,
+            float initialBearing = (float) atan2(cosU2 * sinLambda,
                     cosU1 * sinU2 - sinU1 * cosU2 * cosLambda);
-            initialBearing *= 180.0 / Math.PI;
+            initialBearing *= 180.0 / PI;
             results[1] = initialBearing;
             if (results.length > 2) {
-                float finalBearing = (float) Math.atan2(cosU1 * sinLambda,
+                float finalBearing = (float) atan2(cosU1 * sinLambda,
                         -sinU1 * cosU2 + cosU1 * sinU2 * cosLambda);
-                finalBearing *= 180.0 / Math.PI;
+                finalBearing *= 180.0 / PI;
                 results[2] = finalBearing;
             }
         }
+    }
+
+    /**
+     * How to compute the "weighted" center of a cluster.
+     * First iteration:
+     * cluster's weight (or count) is 0, first point's weight is 1 so center of the cluster is the actual point.
+     * </p>
+     * Second iteration:
+     * - compute the distance between the existing cluster center and the point
+     * - since both points have a weight of 1, move the cluster's new center half-way between the old center
+     * and the point using the bearing.
+     * </p>
+     * Third iteration:
+     * - compute the distance between the existing cluster center and the second point.
+     * - since the cluster now has a weight of 2 and the new point has a weight of 1, move the new center
+     * one-third of the distance from the current center using the bearing.
+     * </p>
+     * Rinse, repeat as necessary...
+     * </p>
+     * Beautiful Math to be found here: http://www.movable-type.co.uk/scripts/latlong.html
+     */
+    public static LatLng computeWeightedCenter(Cluster cluster, LatLng latLng) {
+        if (cluster.count == 0)
+            throw new IllegalArgumentException("Invalid cluster, it needs at least one location inside.");
+
+        double lat = cluster.center.latitude;
+        double lon = cluster.center.longitude;
+        float[] results = distanceAndBearingBetween(latLng, cluster.center);
+
+        double weight = 1.0 / cluster.count;
+        double dist = weight * (results[0] / 1000.0);
+        double distR = dist / EARTH_RADIUS;
+
+        double bearing = toRadians(results[1]);
+        double latRad = toRadians(lat);
+        double lonRad = toRadians(lon);
+
+        double latRad2 = asin(sin(latRad) * cos(distR) + cos(latRad) * sin(distR) * cos(bearing));
+        double lonRad2 = lonRad + atan2(sin(bearing) * sin(distR) * cos(latRad), cos(distR) - sin(latRad) * sin(latRad2));
+        // Normalise to -180..+180º
+        lonRad2 = (lonRad2 + 3 * PI) % (2 * PI) - PI;
+
+        double lat2 = toDegrees(latRad2);
+        double lon2 = toDegrees(lonRad2);
+        return new LatLng(lat2, lon2);
     }
 }

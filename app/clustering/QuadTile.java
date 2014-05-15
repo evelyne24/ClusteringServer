@@ -1,5 +1,6 @@
 package clustering;
 
+import models.LatLng;
 import models.Location;
 
 import static clustering.LocationUtils.*;

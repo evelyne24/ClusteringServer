@@ -1,6 +1,8 @@
 package clustering;
 
 
+import models.LatLng;
+
 import static clustering.LocationUtils.*;
 
 /**
@@ -31,6 +33,9 @@ public enum ZoomLevel {
 
     public static final int MIN_ZOOM = 0;
     public static final int MAX_ZOOM = 19;
+
+    public static final int MIN_CLUSTER_ZOOM = 3;
+    public static final int MAX_CLUSTER_ZOOM = 14;
 
     public static ZoomLevel get(int zoom) {
         return ZoomLevel.values()[clip(zoom, MIN_ZOOM, MAX_ZOOM)];

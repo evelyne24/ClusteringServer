@@ -1,15 +1,22 @@
-package clustering;
+package models;
 
 import play.libs.F;
 import play.mvc.QueryStringBindable;
 
+import javax.persistence.Column;
+import javax.persistence.Embeddable;
+
 /**
  * Created by evelina on 11/04/2014.
  */
+
+@Embeddable
 public class LatLng implements QueryStringBindable<LatLng> {
 
+    @Column(name = "lat")
     public double latitude;
 
+    @Column(name = "lon")
     public double longitude;
 
     public LatLng() {
