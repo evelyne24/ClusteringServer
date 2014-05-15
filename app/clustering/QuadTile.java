@@ -200,12 +200,6 @@ public class QuadTile {
         topRight = new LatLng(topLeft.latitude, bottomRight.longitude);
 
         // (BR - TL) / 2 + TL
-        //double halfX = (bottomRight.longitude + topLeft.longitude) / 2.0;
-        // (TL - BR) / 2 + BR
-        //double halfY = (bottomRight.latitude + topLeft.latitude) / 2.0;
-        //center = new LatLng(halfY, halfX);
-
-        // (BR - TL) / 2 + TL
         int centerX = (worldRightBottom.x + worldLeftTop.x) / 2;
         // (TL - BR) / 2 + BR
         int centerY = (worldRightBottom.y + worldLeftTop.y) / 2;

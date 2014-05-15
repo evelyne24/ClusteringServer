@@ -66,6 +66,8 @@ public class Cluster extends Model {
     })
     public LatLng bottomRight;
 
+    public Location location;
+
     public Cluster() {
     }
 
@@ -78,14 +80,16 @@ public class Cluster extends Model {
         topRight = builder.topRight;
         bottomLeft = builder.bottomLeft;
         bottomRight = builder.bottomRight;
+        location = builder.location;
     }
 
     @Override
     public String toString() {
-        return "Cluster{" +
+        return "{" +
                 "quadKey='" + quadKey + '\'' +
                 ", zoom=" + zoom +
                 ", count=" + count +
+                ", center=" + center +
                 '}';
     }
 
@@ -98,6 +102,7 @@ public class Cluster extends Model {
         private LatLng topRight;
         private LatLng bottomLeft;
         private LatLng bottomRight;
+        private Location location;
 
         public Builder() {
         }
@@ -139,6 +144,11 @@ public class Cluster extends Model {
 
         public Builder zoom(int zoom) {
             this.zoom = zoom;
+            return this;
+        }
+
+        public Builder location(Location location) {
+            this.location = location;
             return this;
         }
 

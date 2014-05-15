@@ -3,6 +3,9 @@ package clustering;
 import models.LatLng;
 
 import java.util.Random;
+import java.util.UUID;
+
+import static clustering.LocationUtils.*;
 
 /**
  * Created by evelina on 12/04/2014.
@@ -21,10 +24,10 @@ public class LocationsGenerator {
         double lat = latMin + random.nextDouble() * latRange;
         double lng = lonMin + random.nextDouble() * lonRange;
 
-        return new LatLng(lat, lng);
+        return new LatLng(clipLatitude(lat), clipLongitude(lng));
     }
 
     public static String randomizeName() {
-        return "";
+        return UUID.randomUUID().toString();
     }
 }

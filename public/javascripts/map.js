@@ -19,7 +19,7 @@ function initialize() {
     map = new google.maps.Map(document.getElementById("map-canvas"), mapOptions);
 
     google.maps.event.addListener(map, 'idle', function () {
-        getClusters(map.getBounds(), map.getZoom() + 1);
+        getClusters(map.getBounds(), map.getZoom());
     });
 }
 
@@ -142,7 +142,7 @@ function getClusters(bounds, zoom) {
                 clusters.push(cluster);
             });
 
-            console.log("Got " + clusters.count + " clusters.");
+            console.log("Got " + clusters.length + " clusters.");
 
             for (i in clusters) {
                 addMarker(clusters[i]);
@@ -157,7 +157,7 @@ function getClusters(bounds, zoom) {
 }
 
 function drawTile(cluster) {
-    if(cluster.count <= 1) return;
+    //if(cluster.count <= 1) return;
     var tile = new google.maps.Rectangle({
         strokeColor: '#3254c7',
         strokeOpacity: 0.8,
