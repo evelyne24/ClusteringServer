@@ -7,6 +7,8 @@ create table location (
   id                        bigint auto_increment not null,
   latitude                  double,
   longitude                 double,
+  x                         bigint,
+  y                         bigint,
   quad_key                  varchar(255),
   name                      varchar(255),
   constraint pk_location primary key (id))

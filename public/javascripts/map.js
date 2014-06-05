@@ -43,7 +43,8 @@ function parseCluster(key, value) {
         bottomLeft: bottomLeft,
         center: center,
         name: name,
-        count: value.count
+        count: value.count,
+        quadKey: value.quadKey
     }
 }
 
@@ -120,7 +121,7 @@ function clearTiles() {
 }
 
 function getClusters(bounds, zoom) {
-    //console.log("Get clusters for bounds: " + bounds + ", zoom: " + zoom);
+    console.log("Get clusters for bounds (sw, ne): " + bounds + ", zoom: " + zoom);
 
     var sw = {
         lat: bounds.getSouthWest().lat(),
@@ -139,7 +140,7 @@ function getClusters(bounds, zoom) {
             maxCluster = 0;
 
             $.each(data, function (key, value) {
-                var cluster = parseCluster(key, value);;
+                var cluster = parseCluster(key, value);
                 if (cluster.count > maxCluster) {
                     maxCluster = cluster.count;
                 }
@@ -159,7 +160,7 @@ function getClusters(bounds, zoom) {
 }
 
 function drawTile(cluster) {
-    if(cluster.count <= 1) return;
+    //if(cluster.count <= 1) return;
     var tile = new google.maps.Rectangle({
         strokeColor: '#3254c7',
         strokeOpacity: 0.8,
