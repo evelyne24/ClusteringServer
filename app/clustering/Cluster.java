@@ -2,13 +2,10 @@ package clustering;
 
 import models.Location;
 
-import java.util.ArrayList;
-import java.util.List;
-
 /**
  * Created by evelina on 12/04/2014.
  */
-public class Cluster  implements PointQuadTree.Item{
+public class Cluster {
 
     public LatLng center;
     public LatLng topLeft;
@@ -17,9 +14,6 @@ public class Cluster  implements PointQuadTree.Item{
     public LatLng bottomRight;
     public Location location;
     public int count;
-    public String quadKey;
-    public Point mPoint;
-    public List<Cluster> mChildClusters;
 
     private Cluster(Builder builder) {
         center = builder.center;
@@ -29,14 +23,6 @@ public class Cluster  implements PointQuadTree.Item{
         bottomRight = builder.bottomRight;
         location = builder.location;
         count = builder.count;
-        quadKey = builder.quadKey;
-        mPoint=LocationUtils.latLngToWorldPoint(center,ZoomLevel.get(19));
-        mChildClusters=new ArrayList<Cluster>();
-    }
-
-    @Override
-    public Point getPoint() {
-        return mPoint;
     }
 
     public static final class Builder {
@@ -47,7 +33,6 @@ public class Cluster  implements PointQuadTree.Item{
         private LatLng bottomRight;
         private Location location;
         private int count;
-        private String quadKey;
 
         public Builder() {
         }
@@ -84,11 +69,6 @@ public class Cluster  implements PointQuadTree.Item{
 
         public Builder count(int count) {
             this.count = count;
-            return this;
-        }
-
-        public Builder quadKey(String quadKey) {
-            this.quadKey = quadKey;
             return this;
         }
 

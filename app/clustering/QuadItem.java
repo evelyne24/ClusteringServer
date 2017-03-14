@@ -15,7 +15,7 @@ public class QuadItem implements PointQuadTree.Item {
     public QuadItem(Location item) {
         mClusterItem = item;
         mPosition = new LatLng(item.latitude,item.longitude);
-        mPoint = LocationUtils.latLngToWorldPoint(mPosition, ZoomLevel.get(19));
+        mPoint = LocationUtils.latLngToWorldPoint(mPosition, ZoomLevel.get(ZoomLevel.MAX_ZOOM));
         singletonSet = Collections.singleton(mClusterItem);
     }
 

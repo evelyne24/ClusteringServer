@@ -3,7 +3,7 @@ body { height: 100%; margin: 0; padding: 0 }
 #map-canvas { height: 100% }
 
 .cluster {
-    color: black;
+    color: chartreuse;
     font-family: "Lucida Grande", "Arial", sans-serif;
     font-size: 10px;
     font-weight: bold;

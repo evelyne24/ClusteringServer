@@ -66,12 +66,6 @@ public class LocationUtils {
      * @return
      */
     public static Point latLngToWorldPoint(LatLng latLng, ZoomLevel zoom) {
-        Point out = new Point();
-        latLngToWorldPoint(latLng, zoom, out);
-        return out;
-    }
-
-    public static void latLngToWorldPoint(LatLng latLng, ZoomLevel zoom, Point out) {
         final double latitude = clipLatitude(latLng.latitude);
         final double longitude = clipLongitude(latLng.longitude);
         final double sinLatitude = sin(latitude * (PI / 180.0));
@@ -81,7 +75,8 @@ public class LocationUtils {
 
         final double pixelX = clip(x * zoom.mapSize + 0.5, 0, zoom.mapSize - 1);
         final double pixelY = clip(y * zoom.mapSize + 0.5, 0, zoom.mapSize - 1);
-        out.set((int) pixelX, (int) pixelY);
+
+        return new Point((int) pixelX, (int) pixelY);
     }
 
     /**
@@ -91,7 +86,7 @@ public class LocationUtils {
      * @return
      */
     public static LatLng worldPointToLatLng(Point point, ZoomLevel zoom) {
-        final int mapSize = zoom.mapSize;
+        final long mapSize = zoom.mapSize;
         final double x = (clip(point.x, 0, mapSize - 1.0) / mapSize) - 0.5;
         final double y = 0.5 - ((double) clip(point.y, 0, mapSize - 1) / mapSize);
         double latitude = 90 - 360.0 * atan(exp(-y * 2 * PI)) / PI;
@@ -123,7 +118,7 @@ public class LocationUtils {
      *
      * @return
      */
-    public static String getQuadKey(long x, long y, int zoom) {
+    public static String getQuadKey(int x, int y, int zoom) {
         StringBuilder quadKey = new StringBuilder();
         for (int i = zoom; i > 0; i--) {
             char digit = '0';

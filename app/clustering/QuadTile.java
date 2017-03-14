@@ -48,11 +48,11 @@ public class QuadTile {
     /**
      * The x coordinate of the top left corner of the tile.
      */
-    public final long x;
+    public final int x;
     /**
      * The y coordinate of the top left corner of the tile.
      */
-    public final long y;
+    public final int y;
     /**
      * The zoom level for which we compute the coordinates.
      */
@@ -180,12 +180,11 @@ public class QuadTile {
                     throw new IllegalArgumentException("Invalid QuadKey digit sequence.");
             }
         }
-
         return new QuadTile(tileX, tileY, ZoomLevel.get(zoom));
     }
 
 
-    public QuadTile(final long x, final long y, final ZoomLevel zoom) {
+    public QuadTile(final int x, final int y, final ZoomLevel zoom) {
         this.x = x;
         this.y = y;
         this.zoom = zoom;
@@ -199,14 +198,18 @@ public class QuadTile {
         bottomLeft = new LatLng(bottomRight.latitude, topLeft.longitude);
         topRight = new LatLng(topLeft.latitude, bottomRight.longitude);
 
-        // (BR - TL) / 2 + TL   
-        
+        // (BR - TL) / 2 + TL
+        //double halfX = (bottomRight.longitude + topLeft.longitude) / 2.0;
         // (TL - BR) / 2 + BR
+        //double halfY = (bottomRight.latitude + topLeft.latitude) / 2.0;
+        //center = new LatLng(halfY, halfX);
 
-        long centerX = (worldRightBottom.x + worldLeftTop.x)/2;
-        long centerY = (worldRightBottom.y + worldLeftTop.y)/2;
-		Point centerPoint = new Point(centerX, centerY);
-		center = worldPointToLatLng(centerPoint, zoom);
+        // (BR - TL) / 2 + TL
+        int centerX = (worldRightBottom.x + worldLeftTop.x) / 2;
+        // (TL - BR) / 2 + BR
+        int centerY = (worldRightBottom.y + worldLeftTop.y) / 2;
+        center = worldPointToLatLng(new Point(centerX, centerY), zoom);
+
         radius = distanceBetween(center.latitude, center.longitude, topLeft.latitude, topLeft.longitude);
         quadKey = getQuadKey();
     }
@@ -258,7 +261,7 @@ public class QuadTile {
         return LocationUtils.getQuadKey(x, y, zoom.zoom);
     }
 
-    public QuadTile getNeighbourTile(long x, long y) {
+    public QuadTile getNeighbourTile(int x, int y) {
         if (x < 0) {
             x = zoom.maxTiles.x + x;
         } else if (x > zoom.maxTiles.x) {
@@ -303,9 +306,9 @@ public class QuadTile {
 
     @Override
     public int hashCode() {
-        long result = x;
+        int result = x;
         result = 31 * result + y;
         result = 31 * result + zoom.hashCode();
-        return (int) result;
+        return result;
     }
 }

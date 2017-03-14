@@ -1,13 +1,13 @@
 package controllers;
 
 import clustering.*;
-import clustering.implementations.GridClusteringAlgorithm;
 import com.avaje.ebean.Ebean;
-import com.avaje.ebean.ExpressionList;
-import com.avaje.ebean.Page;
+import com.avaje.ebean.PagedList;
+import com.fasterxml.jackson.databind.JsonNode;
 import models.Location;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import play.Routes;
 import play.libs.Json;
 import play.mvc.Controller;
 import play.mvc.Result;
@@ -20,8 +20,6 @@ import java.sql.SQLException;
 import java.util.*;
 
 import static clustering.QuadTile.getTileFromQuadKey;
-import static clustering.ZoomLevel.Z14;
-import static clustering.ZoomLevel.Z19;
 
 
 public class Application extends Controller {
@@ -31,14 +29,14 @@ public class Application extends Controller {
     /**
      * This result directly redirect to application home.
      */
-    public static Result GO_HOME = redirect(
+    public Result GO_HOME = redirect(
             routes.Application.list(0, "name", "asc", "")
     );
 
     /**
      * Handle default path requests, redirect to computers list
      */
-    public static Result index() {
+    public Result index() {
         return GO_HOME;
     }
 
@@ -50,7 +48,7 @@ public class Application extends Controller {
      * @param order  Sort order (either asc or desc)
      * @param filter Filter applied on location names
      */
-    public static Result list(int page, String sortBy, String order, String filter) {
+    public Result list(int page, String sortBy, String order, String filter) {
         return ok(
                 list.render(
                         Location.listByName(page, 10, sortBy, order, filter),
@@ -59,48 +57,49 @@ public class Application extends Controller {
         );
     }
 
-
-    public static Result createLocations(LatLng sw, LatLng ne, int count) {
-        long startTime = System.currentTimeMillis();
-        Location.create(sw, ne, count);
-        double duration = ((double) (System.currentTimeMillis() - startTime)) / 1000;
-        return ok("Generated " + count + " random locations and computed clusters in " + duration + " seconds.");
-    }
-
-
     /**
      * Update db locations with random coordinates and computed quad key at the max zoom level.
      */
-    public static Result update(LatLng sw, LatLng ne) {
-       /* int page = 0;
+    public Result update(LatLng sw, LatLng ne) {
+        int page = 0;
         int totalSize = 0;
-        Page<Location> result;
+        PagedList<Location> result;
         do {
             result = Location.list(page, 1000);
-            Point tmp=new Point();
-            for (Location location : result.getList()) {
+              for (Location location : result.getList()) {
                 LatLng latLng = RandomLocationsGenerator.generate(sw, ne);
                 location.latitude = latLng.latitude;
                 location.longitude = latLng.longitude;
-                location.quadKey = LocationUtils.getQuadKey(latLng, Z19);
-                LocationUtils.latLngToWorldPoint(latLng,Z19,tmp);
-                location.x= Long.valueOf(tmp.x);
-                location.y= Long.valueOf(tmp.y);
+                location.quadKey = LocationUtils.getQuadKey(latLng, ZoomLevel.get(ZoomLevel.MAX_ZOOM));
+                Ebean.save(location);
             }
-            Ebean.save(result.getList());
             page++;
             totalSize += result.getList().size();
-        } while (result.getList().size() > 0);*/
+        } while (result.getList().size() > 0);
 
-        createLocations(sw, ne, 10000);
+        return ok("Updated the quad keys for " + totalSize + " locations.");
+    }
 
-        return ok("generated 100000 locations.");
+    /**
+     * Add db locations with random coordinates and computed quad key at the max zoom level.
+     */
+    public Result add(LatLng sw, LatLng ne,int points) {
+            for (int i=0 ; i<points;i++) {
+                Location location=new Location();
+                location.name= UUID.randomUUID().toString();
+                LatLng latLng = RandomLocationsGenerator.generate(sw, ne);
+                location.latitude = latLng.latitude;
+                location.longitude = latLng.longitude;
+                location.quadKey = LocationUtils.getQuadKey(latLng,  ZoomLevel.get(ZoomLevel.MAX_ZOOM));
+                Ebean.save(location);
+            }
+        return ok("Updated the quad keys for " + points + " locations.");
     }
 
     /**
      * Show Google Maps centered on a default location.
      */
-    public static Result map() {
+    public Result map() {
         return ok(views.html.map.render());
     }
 
@@ -114,13 +113,12 @@ public class Application extends Controller {
      * @param zoom the zoom level of the map.
      * @return
      */
-    public static Result jsonList(LatLng sw, LatLng ne, int zoom) {
+    public Result jsonList(LatLng sw, LatLng ne, int zoom) {
         try {
-            if (zoom > Z14.zoom) {
-                return ok(Json.toJson(getSinleLocations(sw, ne, zoom)));
-            }
+            //log.info("Getting clusters in bounds {} - {} at zoom {}", sw, ne, zoom);
             Map<String, Cluster> clusters = getClustersCount(sw, ne, zoom);
-            return ok(Json.toJson(clusters.values()));
+            //log.debug("Got back clusters map {}", clusters.toString());
+            return ok(Json.toJson(clusters));
 
         } catch (SQLException e) {
             return internalServerError(e.getMessage());
@@ -128,12 +126,12 @@ public class Application extends Controller {
     }
 
     private static Map<String, Cluster> getClustersCount(LatLng sw, LatLng ne, int zoom) throws SQLException {
-
-        long time = System.currentTimeMillis();
-        String sql = "SELECT SUBSTRING(quad_key,1,?) as cqk, name, latitude, longitude, x, y " +
-                "                FROM location " +
-                "                WHERE latitude > ? AND latitude < ?" +
-                "                AND longitude >? AND longitude < ?";
+        // cqk = cluster quad key, cnt = how many locations in the cluster
+        String sql = "SELECT SUBSTRING(quad_key, 1, ?) AS cqk, COUNT(*) AS cnt, MAX(name) AS name, AVG(latitude) latitude, AVG(longitude) longitude " +
+                "FROM location " +
+                "WHERE latitude > ? AND latitude < ? " +
+                "AND longitude > ? AND longitude < ? " +
+                "GROUP BY cqk";
 
         Connection conn = play.db.DB.getConnection();
         PreparedStatement stmt = null;
@@ -145,9 +143,32 @@ public class Application extends Controller {
             stmt.setDouble(4, sw.longitude);
             stmt.setDouble(5, ne.longitude);
 
-            // log.debug("Executing SQL {}", stmt.toString());
+            log.debug("Executing SQL {}", stmt.toString());
+
             ResultSet result = stmt.executeQuery();
-            Map<String, Cluster> results = new GridClusteringAlgorithm().getClusters(result);
+
+            Map<String, Cluster> results = new HashMap<String, Cluster>();
+            while (result.next()) {
+                int count = result.getInt("cnt");
+                String quadKey = result.getString("cqk");
+                QuadTile tile = getTileFromQuadKey(quadKey);
+                Cluster.Builder cluster = new Cluster.Builder()
+                        .center(new LatLng(result.getDouble("latitude"),result.getDouble("longitude")))
+                        .topLeft(tile.topLeft)
+                        .topRight(tile.topRight)
+                        .bottomLeft(tile.bottomLeft)
+                        .bottomRight(tile.bottomRight)
+                        .count(count);
+
+                if (count == 1) {
+                    Location location = new Location();
+                    location.name = result.getString("name");
+                    location.latitude = result.getDouble("latitude");
+                    location.longitude = result.getDouble("longitude");
+                    cluster.location(location);
+                }
+                results.put(quadKey, cluster.build());
+            }
             return results;
         } finally {
             try {
@@ -161,65 +182,4 @@ public class Application extends Controller {
         }
     }
 
-
-    private static List<Cluster> getSinleLocations(LatLng sw, LatLng ne, int zoom) throws SQLException {
-
-        String sql = "SELECT SUBSTRING(quad_key,1,?) as cqk, name, latitude, longitude" +
-                "                FROM location " +
-                "                WHERE latitude > ? AND latitude < ?" +
-                "                AND longitude > ? AND longitude < ?";
-
-        Connection conn = play.db.DB.getConnection();
-        PreparedStatement stmt = null;
-        List<Cluster> results = new ArrayList<Cluster>();
-        try {
-            stmt = conn.prepareStatement(sql);
-            stmt.setInt(1, zoom);
-            stmt.setDouble(2, sw.latitude);
-            stmt.setDouble(3, ne.latitude);
-            stmt.setDouble(4, sw.longitude);
-            stmt.setDouble(5, ne.longitude);
-
-            log.debug("Executing SQL {}", stmt.toString());
-
-            ResultSet result = stmt.executeQuery();
-
-            while (result.next()) {
-
-                String quadKey = result.getString("cqk");
-                QuadTile tile = getTileFromQuadKey(quadKey);
-                log.debug("result " + tile.toString(), tile.toString());
-                Location location = new Location();
-                location.name = result.getString("name");
-                location.latitude = result.getDouble("latitude");
-                location.longitude = result.getDouble("longitude");
-                Cluster.Builder cluster = new Cluster.Builder()
-                        .center(new LatLng(location.latitude, location.longitude))
-                        .topLeft(tile.topLeft)
-                        .topRight(tile.topRight)
-                        .bottomLeft(tile.bottomLeft)
-                        .bottomRight(tile.bottomRight)
-                        .quadKey(quadKey);
-
-
-                cluster.location(location);
-                cluster.quadKey(quadKey);
-                cluster.count(1);
-                results.add(cluster.build());
-            }
-
-
-        } finally {
-            try {
-                if (stmt != null) {
-                    stmt.close();
-                }
-                conn.close();
-            } catch (SQLException e) {
-                e.printStackTrace();
-            }
-        }
-        log.debug("returning results", results.size());
-        return results;
-    }
 }

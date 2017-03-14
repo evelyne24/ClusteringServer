@@ -4,13 +4,13 @@ package clustering;
  * Created by evelina on 10/04/2014.
  */
 public class Point {
-    public long x;
-    public long y;
+    public int x;
+    public int y;
 
     public Point() {
     }
 
-    public Point(long x, long y) {
+    public Point(int x, int y) {
         this.x = x;
         this.y = y;
     }
@@ -23,7 +23,7 @@ public class Point {
     /**
      * Set the point's x and y coordinates
      */
-    public void set(long x, long y) {
+    public void set(int x, int y) {
         this.x = x;
         this.y = y;
     }
@@ -66,9 +66,9 @@ public class Point {
 
     @Override
     public int hashCode() {
-        long result = x;
+        int result = x;
         result = 31 * result + y;
-        return (int)result;
+        return result;
     }
 
     @Override
