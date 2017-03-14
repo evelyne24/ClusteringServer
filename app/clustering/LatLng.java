@@ -3,6 +3,9 @@ package clustering;
 import play.libs.F;
 import play.mvc.QueryStringBindable;
 
+import java.util.Map;
+import java.util.Optional;
+
 /**
  * Created by evelina on 11/04/2014.
  */
@@ -21,17 +24,17 @@ public class LatLng implements QueryStringBindable<LatLng> {
     }
 
     @Override
-    public F.Option<LatLng> bind(String key, java.util.Map<String, String[]> data) {
+    public Optional<LatLng> bind(String key, Map<String, String[]> data) {
         if (data.containsKey(key)) {
             try {
                 String[] values = data.get(key)[0].split(",");
                 if (values.length == 2) {
-                    return F.Some(new LatLng(Double.parseDouble(values[0]), Double.parseDouble(values[1])));
+                    return Optional.of(new LatLng(Double.parseDouble(values[0]), Double.parseDouble(values[1])));
                 }
             } catch (NumberFormatException e) {
             }
         }
-        return F.None();
+        return Optional.empty();
     }
 
     @Override

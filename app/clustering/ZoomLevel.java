@@ -27,7 +27,11 @@ public enum ZoomLevel {
     Z16(16, 16777216),
     Z17(17, 33554432),
     Z18(18, 67108864),
-    Z19(19, 134217728);
+    Z19(19, 134217728),
+    Z20(20, 268435456),
+    Z21(21, 536870912),
+    Z22(22, 1073741824),
+    Z23(23, 2147483648l);
 
     public static final int MIN_ZOOM = 0;
     public static final int MAX_ZOOM = 19;
@@ -37,13 +41,15 @@ public enum ZoomLevel {
     }
 
     public final int zoom;
-    public final int mapSize;
+    public final long mapSize;
     public final Point maxTiles;
 
-    ZoomLevel(int zoom, int mapSize) {
+    ZoomLevel(int zoom, long mapSize) {
         this.zoom = zoom;
         this.mapSize = mapSize;
         maxTiles = latLngToWorldPoint(new LatLng(MAX_LATITUDE, MAX_LONGITUDE), this);
     }
+
+
 }
 
