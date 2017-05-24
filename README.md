@@ -15,7 +15,7 @@ in app/view/map.scala.html change google API key
 
 ``` javascript
    <script type="text/javascript"
-            src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDHmQxygMmLD-Yel0iHZZ1XqigLKIcGq_0">
+            src="https://maps.googleapis.com/maps/api/js?key=<API-KEY>">
 ```
 
 ### TODO:
