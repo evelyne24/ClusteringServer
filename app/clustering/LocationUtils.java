@@ -86,7 +86,7 @@ public class LocationUtils {
      * @return
      */
     public static LatLng worldPointToLatLng(Point point, ZoomLevel zoom) {
-        final int mapSize = zoom.mapSize;
+        final long mapSize = zoom.mapSize;
         final double x = (clip(point.x, 0, mapSize - 1.0) / mapSize) - 0.5;
         final double y = 0.5 - ((double) clip(point.y, 0, mapSize - 1) / mapSize);
         double latitude = 90 - 360.0 * atan(exp(-y * 2 * PI)) / PI;

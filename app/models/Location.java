@@ -1,11 +1,12 @@
 package models;
 
-import com.avaje.ebean.Page;
-import play.data.validation.Constraints;
-import play.db.ebean.Model;
+import java.util.*;
+import javax.persistence.*;
 
-import javax.persistence.Entity;
-import javax.persistence.Id;
+import com.avaje.ebean.Model;
+import com.avaje.ebean.PagedList;
+import play.data.format.*;
+import play.data.validation.*;
 
 /**
  * Created by evelina on 10/04/2014.
@@ -29,7 +30,7 @@ public class Location extends Model {
     /**
      * Generic query helper for entity Location with id Long
      */
-    public static Finder<Long, Location> find = new Finder<Long, Location>(Long.class, Location.class);
+    public static Finder<Long, Location> find = new Finder<Long, Location>(Location.class);
 
     /**
      * Return a list of Locations filtered by name.
@@ -40,14 +41,12 @@ public class Location extends Model {
      * @param order    Sort order (either or asc or desc)
      * @param filter   Filter applied on the name column
      */
-    public static Page<Location> listByName(int page, int pageSize, String sortBy, String order, String filter) {
+    public static PagedList<Location>  listByName(int page, int pageSize, String sortBy, String order, String filter) {
         return
                 find.where()
                         .ilike("name", "%" + filter + "%")
                         .orderBy(sortBy + " " + order)
-                        .findPagingList(pageSize)
-                        .setFetchAhead(false)
-                        .getPage(page);
+                        .findPagedList(page,pageSize);
     }
 
     /**
@@ -57,10 +56,9 @@ public class Location extends Model {
      * @param pageSize
      * @return
      */
-    public static Page<Location> list(int page, int pageSize) {
+    public static PagedList<Location> list(int page, int pageSize) {
         return find.where()
-                .findPagingList(pageSize)
-                .setFetchAhead(false)
-                .getPage(page);
+                .findPagedList(page,pageSize);
+
     }
 }

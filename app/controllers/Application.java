@@ -2,10 +2,12 @@ package controllers;
 
 import clustering.*;
 import com.avaje.ebean.Ebean;
-import com.avaje.ebean.Page;
+import com.avaje.ebean.PagedList;
+import com.fasterxml.jackson.databind.JsonNode;
 import models.Location;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import play.Routes;
 import play.libs.Json;
 import play.mvc.Controller;
 import play.mvc.Result;
@@ -15,11 +17,9 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 import static clustering.QuadTile.getTileFromQuadKey;
-import static clustering.ZoomLevel.Z19;
 
 
 public class Application extends Controller {
@@ -29,14 +29,14 @@ public class Application extends Controller {
     /**
      * This result directly redirect to application home.
      */
-    public static Result GO_HOME = redirect(
+    public Result GO_HOME = redirect(
             routes.Application.list(0, "name", "asc", "")
     );
 
     /**
      * Handle default path requests, redirect to computers list
      */
-    public static Result index() {
+    public Result index() {
         return GO_HOME;
     }
 
@@ -48,7 +48,7 @@ public class Application extends Controller {
      * @param order  Sort order (either asc or desc)
      * @param filter Filter applied on location names
      */
-    public static Result list(int page, String sortBy, String order, String filter) {
+    public Result list(int page, String sortBy, String order, String filter) {
         return ok(
                 list.render(
                         Location.listByName(page, 10, sortBy, order, filter),
@@ -60,19 +60,19 @@ public class Application extends Controller {
     /**
      * Update db locations with random coordinates and computed quad key at the max zoom level.
      */
-    public static Result update(LatLng sw, LatLng ne) {
+    public Result update(LatLng sw, LatLng ne) {
         int page = 0;
         int totalSize = 0;
-        Page<Location> result;
+        PagedList<Location> result;
         do {
             result = Location.list(page, 1000);
-            for (Location location : result.getList()) {
+              for (Location location : result.getList()) {
                 LatLng latLng = RandomLocationsGenerator.generate(sw, ne);
                 location.latitude = latLng.latitude;
                 location.longitude = latLng.longitude;
-                location.quadKey = LocationUtils.getQuadKey(latLng, Z19);
+                location.quadKey = LocationUtils.getQuadKey(latLng, ZoomLevel.get(ZoomLevel.MAX_ZOOM));
+                Ebean.save(location);
             }
-            Ebean.save(result.getList());
             page++;
             totalSize += result.getList().size();
         } while (result.getList().size() > 0);
@@ -81,9 +81,25 @@ public class Application extends Controller {
     }
 
     /**
+     * Add db locations with random coordinates and computed quad key at the max zoom level.
+     */
+    public Result add(LatLng sw, LatLng ne,int points) {
+            for (int i=0 ; i<points;i++) {
+                Location location=new Location();
+                location.name= UUID.randomUUID().toString();
+                LatLng latLng = RandomLocationsGenerator.generate(sw, ne);
+                location.latitude = latLng.latitude;
+                location.longitude = latLng.longitude;
+                location.quadKey = LocationUtils.getQuadKey(latLng,  ZoomLevel.get(ZoomLevel.MAX_ZOOM));
+                Ebean.save(location);
+            }
+        return ok("Updated the quad keys for " + points + " locations.");
+    }
+
+    /**
      * Show Google Maps centered on a default location.
      */
-    public static Result map() {
+    public Result map() {
         return ok(views.html.map.render());
     }
 
@@ -97,7 +113,7 @@ public class Application extends Controller {
      * @param zoom the zoom level of the map.
      * @return
      */
-    public static Result jsonList(LatLng sw, LatLng ne, int zoom) {
+    public Result jsonList(LatLng sw, LatLng ne, int zoom) {
         try {
             //log.info("Getting clusters in bounds {} - {} at zoom {}", sw, ne, zoom);
             Map<String, Cluster> clusters = getClustersCount(sw, ne, zoom);
@@ -111,7 +127,7 @@ public class Application extends Controller {
 
     private static Map<String, Cluster> getClustersCount(LatLng sw, LatLng ne, int zoom) throws SQLException {
         // cqk = cluster quad key, cnt = how many locations in the cluster
-        String sql = "SELECT SUBSTRING(quad_key, 1, ?) AS cqk, COUNT(*) AS cnt, name, latitude, longitude " +
+        String sql = "SELECT SUBSTRING(quad_key, 1, ?) AS cqk, COUNT(*) AS cnt, MAX(name) AS name, AVG(latitude) latitude, AVG(longitude) longitude " +
                 "FROM location " +
                 "WHERE latitude > ? AND latitude < ? " +
                 "AND longitude > ? AND longitude < ? " +
@@ -137,7 +153,7 @@ public class Application extends Controller {
                 String quadKey = result.getString("cqk");
                 QuadTile tile = getTileFromQuadKey(quadKey);
                 Cluster.Builder cluster = new Cluster.Builder()
-                        .center(tile.center)
+                        .center(new LatLng(result.getDouble("latitude"),result.getDouble("longitude")))
                         .topLeft(tile.topLeft)
                         .topRight(tile.topRight)
                         .bottomLeft(tile.bottomLeft)
@@ -165,4 +181,5 @@ public class Application extends Controller {
             }
         }
     }
+
 }
